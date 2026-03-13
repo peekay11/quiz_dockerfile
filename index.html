@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css">
+  <title>Quiz</title>
+  
+</head>
+<body>
+<div class="container">
+ 
+  <!-- Quiz screen -->
+  <div id="quiz-screen">
+    <div class="header">
+      <div class="header-left">
+        <h1 id="quiz-title">Loading…</h1>
+        <p  id="quiz-subject"></p>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progress-label">0 / 0</div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+ 
+    <div class="card" id="question-card">
+      <div class="q-meta">
+        <span class="q-badge" id="q-number">Q1</span>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options-list"></div>
+      <div class="explanation" id="explanation"></div>
+    </div>
+ 
+    <div class="card nav">
+      <button class="btn btn-outline" id="btn-prev" disabled>← Previous</button>
+      <button class="btn btn-check"   id="btn-check" disabled>Check answer</button>
+      <button class="btn btn-primary" id="btn-next">Next →</button>
+    </div>
+  </div>
+ 
+  <!-- Score screen -->
+  <div id="score-screen">
+    <div class="score-card">
+      <div class="score-circle" id="score-circle">
+        <span class="score-pct" id="score-pct">0%</span>
+        <span class="score-sub">score</span>
+      </div>
+      <h2 class="score-title" id="score-title"></h2>
+      <p  class="score-msg"   id="score-msg"></p>
+      <div class="score-stats">
+        <div class="stat-item stat-correct">
+          <div class="stat-num" id="stat-correct">0</div>
+          <div class="stat-lbl">Correct</div>
+        </div>
+        <div class="stat-item stat-wrong">
+          <div class="stat-num" id="stat-wrong">0</div>
+          <div class="stat-lbl">Incorrect</div>
+        </div>
+        <div class="stat-item stat-total">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-lbl">Total</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="restartQuiz()" style="width:100%;padding:13px;">Retake Quiz</button>
+ 
+      <div class="review-list" id="review-list"></div>
+    </div>
+  </div>
+ 
+</div>
+ 
+<script>
+  const JSON_FILE = 'questions.json';
+ 
+  let questions = [];
+  let quizMeta  = {};
+  let current   = 0;
+  let userAnswers = [];  // index of chosen option per question, or null
+  let checked   = [];    // whether this question has been checked
+ 
+  async function loadQuiz() {
+    try {
+      const res  = await fetch(JSON_FILE);
+      if (!res.ok) throw new Error('Could not load ' + JSON_FILE);
+      const data = await res.json();
+      quizMeta  = data.quiz;
+      questions = data.questions;
+      userAnswers = Array(questions.length).fill(null);
+      checked     = Array(questions.length).fill(false);
+      initUI();
+      renderQuestion();
+    } catch (e) {
+      document.getElementById('question-card').innerHTML =
+        `<div class="error-msg"><strong>Error:</strong> ${e.message}<br>Make sure <code>questions.json</code> is in the same folder as this HTML file.</div>`;
+      document.querySelector('.nav').style.display = 'none';
+    }
+  }
+ 
+  function initUI() {
+    document.getElementById('quiz-title').textContent   = quizMeta.title;
+    document.getElementById('quiz-subject').textContent = quizMeta.subject;
+  }
+ 
+  function renderQuestion() {
+    const q = questions[current];
+    const total = questions.length;
+    const letters = ['A','B','C','D','E'];
+ 
+    document.getElementById('q-number').textContent = `Q${current + 1}`;
+    document.getElementById('q-text').textContent   = q.question;
+    document.getElementById('progress-label').textContent = `${current + 1} / ${total}`;
+    document.getElementById('progress-fill').style.width  = `${((current + 1) / total) * 100}%`;
+ 
+    // options
+    const list = document.getElementById('options-list');
+    list.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const div = document.createElement('div');
+      div.className = 'option';
+      div.dataset.index = i;
+ 
+      const letter = document.createElement('div');
+      letter.className = 'option-letter';
+      letter.textContent = letters[i];
+ 
+      const text = document.createElement('div');
+      text.className = 'option-text';
+      text.textContent = opt;
+ 
+      div.appendChild(letter);
+      div.appendChild(text);
+      div.addEventListener('click', () => selectOption(i));
+      list.appendChild(div);
+    });
+ 
+    // explanation
+    const exp = document.getElementById('explanation');
+    exp.textContent = q.explanation || '';
+    exp.classList.remove('show');
+ 
+    // restore state if revisiting
+    if (userAnswers[current] !== null) {
+      highlightSelected(userAnswers[current]);
+    }
+    if (checked[current]) {
+      revealAnswer(false);
+    }
+ 
+    // nav buttons
+    document.getElementById('btn-prev').disabled  = current === 0;
+    document.getElementById('btn-next').textContent = current === total - 1 ? 'Finish' : 'Next →';
+    document.getElementById('btn-check').disabled = userAnswers[current] === null || checked[current];
+  }
+ 
+  function highlightSelected(idx) {
+    document.querySelectorAll('.option').forEach((el, i) => {
+      el.classList.toggle('selected', i === idx);
+    });
+  }
+ 
+  function selectOption(idx) {
+    if (checked[current]) return;
+    userAnswers[current] = idx;
+    highlightSelected(idx);
+    document.getElementById('btn-check').disabled = false;
+  }
+ 
+  function revealAnswer(animate = true) {
+    const q = questions[current];
+    const correct = q.answer;
+    const chosen  = userAnswers[current];
+    checked[current] = true;
+ 
+    document.querySelectorAll('.option').forEach((el, i) => {
+      el.classList.remove('selected');
+      el.classList.add('locked');
+      if (i === correct) el.classList.add('correct');
+      if (i === chosen && i !== correct) el.classList.add('wrong');
+    });
+ 
+    if (q.explanation) document.getElementById('explanation').classList.add('show');
+    document.getElementById('btn-check').disabled = true;
+  }
+ 
+  document.getElementById('btn-check').addEventListener('click', () => revealAnswer(true));
+ 
+  document.getElementById('btn-prev').addEventListener('click', () => {
+    if (current > 0) { current--; renderQuestion(); }
+  });
+ 
+  document.getElementById('btn-next').addEventListener('click', () => {
+    if (current < questions.length - 1) {
+      current++;
+      renderQuestion();
+    } else {
+      showScore();
+    }
+  });
+ 
+  function showScore() {
+    const total   = questions.length;
+    const correct = questions.reduce((sum, q, i) => sum + (userAnswers[i] === q.answer ? 1 : 0), 0);
+    const pct     = Math.round((correct / total) * 100);
+    const pass    = pct >= (quizMeta.passMark || 60);
+ 
+    document.getElementById('quiz-screen').style.display   = 'none';
+    document.getElementById('score-screen').style.display  = 'block';
+ 
+    document.getElementById('score-pct').textContent     = pct + '%';
+    document.getElementById('stat-correct').textContent  = correct;
+    document.getElementById('stat-wrong').textContent    = total - correct;
+    document.getElementById('stat-total').textContent    = total;
+ 
+    const circle = document.getElementById('score-circle');
+    circle.classList.toggle('pass', pass);
+    circle.classList.toggle('fail', !pass);
+ 
+    document.getElementById('score-title').textContent = pass ? '🎉 Well done!' : '📚 Keep practising';
+    document.getElementById('score-msg').textContent   =
+      pass ? `You passed with ${pct}% — great job!`
+           : `You scored ${pct}%. The pass mark is ${quizMeta.passMark || 60}%. Try again!`;
+ 
+    // review list
+    const reviewList = document.getElementById('review-list');
+    reviewList.innerHTML = '<h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;">Answer review</h3>';
+    questions.forEach((q, i) => {
+      const isCorrect = userAnswers[i] === q.answer;
+      const div = document.createElement('div');
+      div.className = 'review-item';
+      div.innerHTML = `
+        <span class="review-icon">${isCorrect ? '✅' : '❌'}</span>
+        <div class="review-q">
+          <div>${q.question}</div>
+          <div class="review-a">
+            ${isCorrect
+              ? 'Correct: ' + q.options[q.answer]
+              : `Your answer: ${userAnswers[i] !== null ? q.options[userAnswers[i]] : 'Not answered'} &nbsp;|&nbsp; Correct: ${q.options[q.answer]}`
+            }
+          </div>
+        </div>`;
+      reviewList.appendChild(div);
+    });
+  }
+ 
+  function restartQuiz() {
+    current     = 0;
+    userAnswers = Array(questions.length).fill(null);
+    checked     = Array(questions.length).fill(false);
+    document.getElementById('score-screen').style.display = 'none';
+    document.getElementById('quiz-screen').style.display  = 'block';
+    renderQuestion();
+  }
+ 
+  loadQuiz();
+</script>
+</body>
+</html>
+ 
+
