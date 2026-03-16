@@ -3,116 +3,442 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Quiz Showdown</title>
+    <title>Quiz Showdown</title>
     <link rel="stylesheet" href="style.css">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 <body>
-<div class="container">
-    
-    <div id="debug-console" style="display:none; margin: 10px; padding: 15px; background: #fee2e2; border: 2px solid #ef4444; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; color: #991b1b; position: relative; z-index: 9999;">
-        <h3 style="margin-top:0; color: #b91c1c;">⚠️ Connection/System Error</h3>
-        <div id="error-message-list" style="max-height: 100px; overflow-y: auto;"></div>
-        <button onclick="location.reload()" style="margin-top:10px; background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Retry Connection</button>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 · LANDING
+══════════════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+    <div class="landing-hero">
+        <div class="landing-tag">⚡ MULTIPLAYER TRIVIA</div>
+        <h1 class="logo">QUIZ<br><span class="logo-accent">SHOWDOWN</span></h1>
+        <p class="landing-sub">Team up. Answer fast. Dominate.</p>
     </div>
-
-    <div id="start-menu" class="card">
-        <h1>🎮 Team Quiz Showdown</h1>
-        <div id="lobby-ui">
-            <input type="text" id="player-name" placeholder="Enter Your Name" class="input-field" style="width: 100%; margin-bottom: 10px; padding: 12px;">
-            <div style="margin-top:15px; text-align: center;">
-                <button class="btn btn-primary" style="width: 100%;" onclick="window.dispatchEvent(new CustomEvent('hostGame'))">Host New Game</button>
-                
-                <div style="margin-top:30px; border-top: 1px solid #ddd; padding-top: 20px;">
-                    <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Joining a friend?</p>
-                    <div style="display: flex; gap: 5px; justify-content: center;">
-                        <input type="text" id="join-code" placeholder="CODE" class="input-field" style="width:100px; text-transform:uppercase; text-align: center;">
-                        <button class="btn btn-outline" id="btn-join">Join Room</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="waiting-room" style="display:none; text-align: center;">
-            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; display: inline-block;">
-                <span style="font-size: 0.8rem; text-transform: uppercase; color: #666;">Room Code</span>
-                <div id="display-code" style="font-size: 32px; font-weight: bold; color: #3b82f6; letter-spacing: 4px;">----</div>
-            </div>
-            <p id="player-status" style="margin: 20px 0; font-style: italic;">Connecting to Supabase...</p>
-            
-            <div id="host-only-controls" style="display:none; border-top: 1px solid #eee; padding-top: 20px;">
-                <button class="btn btn-check" id="btn-start" style="width:100%; padding: 15px;">START GAME (Team Shuffle)</button>
-            </div>
-        </div>
+    <div class="landing-actions">
+        <button class="btn btn-volt" onclick="goTo('screen-name','host')">HOST A GAME</button>
+        <button class="btn btn-lime" onclick="goTo('screen-name','join')">JOIN A GAME</button>
+        <button class="btn btn-ghost" onclick="window.dispatchEvent(new CustomEvent('quickJoin'))">⚡ QUICK JOIN</button>
+        <button class="btn btn-ghost" onclick="goTo('screen-rules')" style="margin-top:4px;">HOW TO PLAY</button>
     </div>
-
-    <div id="game-screen" style="display:none;">
-        <div class="game-layout" style="display: flex; gap: 20px;">
-            
-            <div class="main-column" style="flex: 3; position: relative;">
-                <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <div class="timer-circle" style="background: #333; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">
-                        <span id="timer-sec">10</span>s
-                    </div>
-                    <div class="turn-info" style="text-align: right;">
-                        <p style="margin:0; font-size: 0.8rem; color: #666;">Current Turn</p>
-                        <h2 id="active-player-display" style="margin:0; color: #1f2937;">Waiting...</h2>
-                    </div>
-                </div>
-                
-                <div class="card quiz-box" style="position: relative;">
-                    <div id="q-text" class="question-text" style="font-size: 22px; margin-bottom: 20px; font-weight: 600;">Question loading...</div>
-                    <div id="options-list" class="options-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
-                    
-                    <div id="input-lock" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:100; border-radius: 12px; cursor: not-allowed; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666;">
-                        Watching...
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar" style="flex: 1;">
-                <div class="team-card" style="background: #eff6ff; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #bfdbfe;">
-                    <h3 style="margin:0; display:flex; justify-content: space-between;">Team A <span id="score-t1">0</span></h3>
-                    <ul id="list-t1" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 10px;"></ul>
-                </div>
-
-                <div class="team-card" style="background: #fef2f2; padding: 15px; border-radius: 12px; border: 1px solid #fecaca;">
-                    <h3 style="margin:0; display:flex; justify-content: space-between;">Team B <span id="score-t2">0</span></h3>
-                    <ul id="list-t2" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 10px;"></ul>
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
-<script type="py" src="database.py" config="pyscript.json"></script>
+<!-- ══════════════════════════════════════
+     SCREEN 2 · RULES
+══════════════════════════════════════ -->
+<div id="screen-rules" class="screen">
+    <div class="screen-header">
+        <button class="back-btn" onclick="goTo('screen-landing')">← BACK</button>
+        <h2 class="screen-title">HOW TO PLAY</h2>
+    </div>
+    <div class="rules-list">
+        <div class="rule-item">
+            <div class="rule-num volt">01</div>
+            <div class="rule-text"><strong>Host creates a room</strong><span>Pick how many players, share the 4-letter code</span></div>
+        </div>
+        <div class="rule-item">
+            <div class="rule-num lime">02</div>
+            <div class="rule-text"><strong>Everyone joins &amp; readies up</strong><span>Enter your name, the code, then hit READY UP</span></div>
+        </div>
+        <div class="rule-item">
+            <div class="rule-num volt">03</div>
+            <div class="rule-text"><strong>Teams are auto-assigned</strong><span>⚡ VOLT vs 🟢 LIME — balanced random split</span></div>
+        </div>
+        <div class="rule-item">
+            <div class="rule-num lime">04</div>
+            <div class="rule-text"><strong>Take turns answering</strong><span>10 seconds per question — wrong or timeout = 0 pts</span></div>
+        </div>
+        <div class="rule-item">
+            <div class="rule-num volt">05</div>
+            <div class="rule-text"><strong>Highest correct answers wins</strong><span>Each correct answer = 1 point for your team</span></div>
+        </div>
+    </div>
+    <button class="btn btn-volt" onclick="goTo('screen-landing')" style="margin-top:auto;">GOT IT ✓</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3 · NAME / SETUP
+══════════════════════════════════════ -->
+<div id="screen-name" class="screen">
+    <div class="screen-header">
+        <button class="back-btn" onclick="goTo('screen-landing')">← BACK</button>
+        <h2 class="screen-title" id="name-screen-title">HOST GAME</h2>
+    </div>
+    <div class="form-body">
+        <div class="field-group">
+            <label class="field-label">YOUR NAME</label>
+            <input type="text" id="player-name" class="field-input" placeholder="Enter your name" maxlength="20" autocomplete="off">
+        </div>
+        <!-- Host-only options -->
+        <div id="host-options" style="display:none;">
+            <div class="field-group">
+                <label class="field-label">NUMBER OF PLAYERS</label>
+                <div class="count-selector">
+                    <button class="count-btn" onclick="changeCount(-1)">−</button>
+                    <span id="player-count-display">4</span>
+                    <button class="count-btn" onclick="changeCount(1)">+</button>
+                </div>
+                <p class="field-hint">Min 2 · Max 10</p>
+            </div>
+            <div class="field-group" style="margin-top:16px;">
+                <label class="field-label">ROOM VISIBILITY</label>
+                <div class="toggle-row">
+                    <span class="toggle-label" id="privacy-label">🌐 Public Room</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="is-private-toggle" onchange="updatePrivacyLabel()">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <p class="field-hint">Public rooms are discoverable by Quick Join</p>
+            </div>
+        </div>
+        <!-- Join-only options -->
+        <div id="join-options" style="display:none;">
+            <div class="field-group">
+                <label class="field-label">ROOM CODE</label>
+                <input type="text" id="join-code" class="field-input code-input" placeholder="ABCD" maxlength="4" autocomplete="off">
+            </div>
+        </div>
+    </div>
+    <button class="btn btn-volt" id="btn-proceed">CONTINUE →</button>
+    <div id="error-inline" class="error-inline" style="display:none;"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4 · WAITING ROOM / LOBBY
+══════════════════════════════════════ -->
+<div id="screen-waiting" class="screen">
+    <div class="waiting-header">
+        <div>
+            <div class="screen-title">LOBBY</div>
+            <div class="waiting-status" id="waiting-status">Waiting for players…</div>
+        </div>
+        <div class="room-code-badge">
+            <div class="room-code-label">ROOM CODE</div>
+            <div id="display-code" class="room-code-value">----</div>
+            <!-- Share / Copy row -->
+            <div class="share-row">
+                <button class="share-btn" onclick="copyCode()" title="Copy code">📋 COPY</button>
+                <button class="share-btn" onclick="shareRoom()" title="Share">🔗 SHARE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="teams-waiting">
+        <div class="team-col">
+            <div class="team-col-header volt-bg">⚡ VOLT</div>
+            <div id="slots-volt" class="slot-list"></div>
+        </div>
+        <div class="team-col">
+            <div class="team-col-header lime-bg">🟢 LIME</div>
+            <div id="slots-lime" class="slot-list"></div>
+        </div>
+    </div>
+
+    <div class="waiting-footer">
+        <div class="waiting-counter" id="waiting-counter">0 / 0 joined</div>
+        <!-- READY UP button (all players) -->
+        <button class="btn btn-ghost" id="btn-ready"
+            onclick="window.dispatchEvent(new CustomEvent('toggleReady'))">
+            READY UP
+        </button>
+        <!-- START GAME (host only, disabled until all ready) -->
+        <button class="btn btn-volt" id="btn-start" style="display:none;" disabled
+            onclick="window.dispatchEvent(new CustomEvent('startGame'))">
+            WAITING FOR READY (0/0)
+        </button>
+        <div id="host-hint" class="field-hint" style="text-align:center;display:none;">
+            Start is enabled once all players are ready
+        </div>
+        <!-- Leave room -->
+        <button class="btn btn-ghost" style="margin-top:6px;font-size:14px;"
+            onclick="window.dispatchEvent(new CustomEvent('leaveRoom'))">
+            ← LEAVE ROOM
+        </button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 5 · GAME
+══════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+    <!-- Scoreboard strip -->
+    <div class="scoreboard">
+        <div class="sb-team volt-side">
+            <div class="sb-name">⚡ VOLT</div>
+            <div class="sb-score" id="score-t1">0</div>
+            <div id="sb-players-volt" class="sb-players"></div>
+        </div>
+        <div class="sb-divider">
+            <div class="timer-ring">
+                <svg viewBox="0 0 48 48">
+                    <circle cx="24" cy="24" r="20" fill="none" stroke="#222" stroke-width="3"/>
+                    <circle id="timer-arc" cx="24" cy="24" r="20" fill="none" stroke="#e8ff00" stroke-width="3"
+                        stroke-dasharray="125.6" stroke-dashoffset="0" stroke-linecap="round"
+                        transform="rotate(-90 24 24)"/>
+                </svg>
+                <span id="timer-sec">10</span>
+            </div>
+        </div>
+        <div class="sb-team lime-side">
+            <div class="sb-name">🟢 LIME</div>
+            <div class="sb-score" id="score-t2">0</div>
+            <div id="sb-players-lime" class="sb-players"></div>
+        </div>
+    </div>
+
+    <!-- Turn banner -->
+    <div id="turn-banner" class="turn-banner volt-turn">
+        <span id="turn-text">YOUR TURN</span>
+    </div>
+
+    <!-- Question -->
+    <div class="question-card" id="question-card">
+        <div class="q-meta">
+            <span class="q-num" id="q-counter">Q 1</span>
+            <span class="q-player" id="active-player-display">—</span>
+        </div>
+        <div class="q-text" id="q-text">Loading question…</div>
+    </div>
+
+    <!-- Options -->
+    <div class="options-grid" id="options-list"></div>
+
+    <!-- Lock overlay -->
+    <div id="input-lock" class="input-lock" style="display:none;">
+        ⏳ Waiting for <strong id="lock-name">Connecting...</strong> to answer…
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 6 · RESULTS
+══════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+    <div class="results-hero">
+        <div class="winner-trophy" id="winner-trophy">🏆</div>
+        <div class="winner-team-label" id="winner-team-label">VOLT</div>
+        <h1 class="winner-title" id="winner-title">WINS!</h1>
+    </div>
+    <div class="results-scores">
+        <div class="res-block volt-res">
+            <div class="res-label">⚡ VOLT</div>
+            <div class="res-score" id="final-t1">0</div>
+        </div>
+        <div class="res-vs">VS</div>
+        <div class="res-block lime-res">
+            <div class="res-label">🟢 LIME</div>
+            <div class="res-score" id="final-t2">0</div>
+        </div>
+    </div>
+    <div class="player-breakdown" id="player-breakdown"></div>
+    <button class="btn btn-volt" onclick="location.reload()">PLAY AGAIN</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     TOAST NOTIFICATION
+══════════════════════════════════════ -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<!-- ══════════════════════════════════════
+     DEBUG BAR
+══════════════════════════════════════ -->
+<div id="debug-console" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:10px 16px;background:#1a0000;color:#f87171;font-family:monospace;font-size:12px;z-index:999;border-top:2px solid #ef4444;">
+    ⚠ <span id="error-msg"></span>
+</div>
+
+<script type="py" src="database.py"></script>
+
 <script>
-    // System Error Logger
-    function showDebugError(msg) {
-        document.getElementById('debug-console').style.display = 'block';
-        const list = document.getElementById('error-message-list');
-        const entry = document.createElement('div');
-        entry.innerText = ">> " + msg;
-        list.appendChild(entry);
+/* ── State ── */
+let _flow        = null;
+let _playerCount = 4;
+let _maxPlayers  = 4;
+let _isPrivate   = false;
+
+/* ── Navigation ── */
+function goTo(id, flow) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (flow) {
+        _flow = flow;
+        const host = flow === 'host';
+        document.getElementById('name-screen-title').innerText = host ? 'HOST GAME' : 'JOIN GAME';
+        document.getElementById('host-options').style.display  = host ? 'block' : 'none';
+        document.getElementById('join-options').style.display  = host ? 'none'  : 'block';
+    }
+}
+window.goTo = goTo;
+
+/* ── Player count & privacy ── */
+function changeCount(d) {
+    _playerCount = Math.min(10, Math.max(2, _playerCount + d));
+    document.getElementById('player-count-display').innerText = _playerCount;
+}
+function updatePrivacyLabel() {
+    _isPrivate = document.getElementById('is-private-toggle').checked;
+    document.getElementById('privacy-label').innerText = _isPrivate ? '🔒 Private Room' : '🌐 Public Room';
+}
+
+/* ── Exposed to Python ── */
+function getFlow()        { return _flow; }
+function getPlayerCount() { return _playerCount; }
+function getIsPrivate()   { return _isPrivate; }
+
+document.getElementById('btn-proceed').onclick = () =>
+    window.dispatchEvent(new CustomEvent('proceedFlow'));
+
+/* ── Error / toast helpers ── */
+function showError(msg) {
+    const el = document.getElementById('error-inline');
+    el.innerText = msg || '';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3500);
+}
+function showDebugError(msg) {
+    document.getElementById('debug-console').style.display = 'block';
+    document.getElementById('error-msg').innerText = msg || '';
+    console.error('[QuizDebug]', msg);
+}
+function showToast(msg, duration = 3000) {
+    const t = document.getElementById('toast');
+    t.innerText = msg || '';
+    t.style.display = 'block';
+    t.classList.add('toast-show');
+    setTimeout(() => { t.classList.remove('toast-show'); t.style.display = 'none'; }, duration);
+}
+window.showToast = showToast;
+
+/* ── Copy & Share ── */
+function copyCode() {
+    const code = document.getElementById('display-code').innerText;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(() => showToast('📋 Code copied: ' + code));
+    } else {
+        showToast('Code: ' + code);
+    }
+}
+function shareRoom() {
+    const code = document.getElementById('display-code').innerText;
+    const url  = `${location.origin}${location.pathname}?code=${code}`;
+    if (navigator.share) {
+        navigator.share({ title: 'Quiz Showdown', text: `Join my room: ${code}`, url }).catch(() => {});
+    } else {
+        copyCode();
+        showToast('🔗 Link copied to clipboard!');
+    }
+}
+
+/* ── Show waiting room ── */
+function showWaitingRoom(code, isHost, maxPlayers) {
+    _maxPlayers = maxPlayers;
+    goTo('screen-waiting');
+    document.getElementById('display-code').innerText = code || '----';
+    if (isHost) {
+        document.getElementById('btn-start').style.display = 'block';
+        document.getElementById('host-hint').style.display = 'block';
+    }
+    renderWaiting([], maxPlayers);
+}
+
+/* ── Render waiting-room team columns ── */
+function renderWaiting(players, max) {
+    _maxPlayers = max || _maxPlayers;
+    const volt       = players.filter(p => p.team === 1 || p.team === '1');
+    const lime       = players.filter(p => p.team === 2 || p.team === '2');
+    const unassigned = players.filter(p => !p.team || (p.team != 1 && p.team != 2));
+    const joined     = players.length;
+    const half       = Math.ceil(_maxPlayers / 2);
+
+    function safeName(n) {
+        if (!n || n === 'null' || n === 'undefined') return 'Connecting...';
+        return String(n).trim() || 'Connecting...';
     }
 
-    // Global JS Error Catching
-    window.onerror = (m, s, l) => showDebugError(`JS: ${m} (Line ${l})`);
-    window.onunhandledrejection = (e) => showDebugError(`DB: ${e.reason}`);
-
-    function showWaiting(code, isHost) {
-        document.getElementById('lobby-ui').style.display = 'none';
-        document.getElementById('waiting-room').style.display = 'block';
-        document.getElementById('display-code').innerText = code;
-        document.getElementById('player-status').innerText = "In Lobby - Waiting for players...";
-        if(isHost) document.getElementById('host-only-controls').style.display = 'block';
+    function makeSlots(list, count, teamClass) {
+        let html = '';
+        for (let i = 0; i < count; i++) {
+            const p = list[i];
+            if (p) {
+                const readyBadge = p.is_ready
+                    ? '<span class="ready-badge ready-yes">✓</span>'
+                    : '<span class="ready-badge ready-no">…</span>';
+                const hostBadge = p.is_host ? ' <span class="host-badge">HOST</span>' : '';
+                html += `<div class="player-slot filled ${teamClass}">
+                    <span class="slot-dot"></span>
+                    <span class="slot-name">${safeName(p.name)}${hostBadge}</span>
+                    ${readyBadge}
+                </div>`;
+            } else {
+                html += `<div class="player-slot empty"><span class="slot-empty-text">waiting…</span></div>`;
+            }
+        }
+        return html;
     }
+
+    const leftList = volt.length ? volt : unassigned.slice(0, half);
+    document.getElementById('slots-volt').innerHTML = makeSlots(leftList, half, 'volt-slot');
+    document.getElementById('slots-lime').innerHTML = makeSlots(lime, half, 'lime-slot');
+    document.getElementById('waiting-counter').innerText = `${joined} / ${_maxPlayers} joined`;
+}
+window.renderWaiting = renderWaiting;
+
+/* ── Scoreboard player list ── */
+function renderScoreboardPlayers(players) {
+    function safeName(n) { return (!n || n==='null'||n==='undefined') ? 'Connecting...' : String(n); }
+    const volt = players.filter(p => p.team === 1 || p.team === '1');
+    const lime = players.filter(p => p.team === 2 || p.team === '2');
+    const mkList = list => list.map(p =>
+        `<span class="sb-player-name">${safeName(p.name)} <b>${p.score || 0}</b></span>`
+    ).join('');
+    const v = document.getElementById('sb-players-volt');
+    const l = document.getElementById('sb-players-lime');
+    if (v) v.innerHTML = mkList(volt);
+    if (l) l.innerHTML = mkList(lime);
+}
+window.renderScoreboardPlayers = renderScoreboardPlayers;
+
+/* ── Results breakdown ── */
+function renderBreakdown(players) {
+    function safeName(n) { return (!n||n==='null'||n==='undefined') ? 'Connecting...' : String(n); }
+    const volt = players.filter(p=>p.team===1||p.team==='1').sort((a,b)=>b.score-a.score);
+    const lime = players.filter(p=>p.team===2||p.team==='2').sort((a,b)=>b.score-a.score);
+    const row  = p => `<div class="bd-row"><span>${safeName(p.name)}</span><span class="bd-score">${p.score||0} pts</span></div>`;
+    document.getElementById('player-breakdown').innerHTML = `
+        <div class="bd-col">
+            <div class="bd-header volt-text">⚡ VOLT</div>
+            ${volt.map(row).join('')}
+        </div>
+        <div class="bd-col">
+            <div class="bd-header lime-text">🟢 LIME</div>
+            ${lime.map(row).join('')}
+        </div>`;
+}
+window.renderBreakdown = renderBreakdown;
+
+/* ── Player ID persistence for reconnect ── */
+function storePlayerId(id)  { try { localStorage.setItem('qz_pid', String(id)); } catch(e){} }
+function getStoredPlayerId(){ try { return localStorage.getItem('qz_pid'); } catch(e){ return null; } }
+function clearStoredPlayerId(){ try { localStorage.removeItem('qz_pid'); } catch(e){} }
+window.storePlayerId      = storePlayerId;
+window.getStoredPlayerId  = getStoredPlayerId;
+window.clearStoredPlayerId= clearStoredPlayerId;
+
+/* ── Auto-join via URL ?code=XXXX ── */
+(function() {
+    const params = new URLSearchParams(location.search);
+    const code   = params.get('code');
+    if (code && code.length === 4) {
+        goTo('screen-name', 'join');
+        document.getElementById('join-code').value = code.toUpperCase();
+    }
+})();
 </script>
-
 </body>
 </html>

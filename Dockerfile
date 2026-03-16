@@ -1,7 +1,6 @@
 FROM nginx:alpine
-#reference my html 
-COPY index.html /usr/share/nginx/html/
-#reference my json 
-COPY questions.json /usr/share/nginx/html/
-COPY style.css /usr/share/nginx/html/
 
+COPY index.html    /usr/share/nginx/html/
+COPY style.css     /usr/share/nginx/html/
+COPY database.py   /usr/share/nginx/html/
+COPY questions.json /usr/share/nginx/html/

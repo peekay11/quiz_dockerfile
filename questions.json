@@ -1,80 +1,17 @@
-{
-  "quiz": {
-    "title": "General Knowledge Quiz",
-    "subject": "Mixed Topics",
-    "timeLimit": null,
-    "passMark": 60
+[
+  {
+    "question": "Which Python library allows us to run Python in the browser?",
+    "options": ["Flask", "Django", "PyScript", "Pandas"],
+    "answer": 2
   },
-  "questions": [
-    {
-      "id": 1,
-      "question": "What is the capital city of France?",
-      "options": ["London", "Berlin", "Paris", "Madrid"],
-      "answer": 2,
-      "explanation": "Paris has been the capital of France since 987 AD."
-    },
-    {
-      "id": 2,
-      "question": "Which planet is known as the Red Planet?",
-      "options": ["Venus", "Mars", "Jupiter", "Saturn"],
-      "answer": 1,
-      "explanation": "Mars appears red due to iron oxide (rust) on its surface."
-    },
-    {
-      "id": 3,
-      "question": "What is 12 × 8?",
-      "options": ["86", "96", "106", "116"],
-      "answer": 1,
-      "explanation": "12 multiplied by 8 equals 96."
-    },
-    {
-      "id": 4,
-      "question": "Which element has the chemical symbol 'O'?",
-      "options": ["Gold", "Osmium", "Oxygen", "Oganesson"],
-      "answer": 2,
-      "explanation": "Oxygen (O) is element number 8 on the periodic table."
-    },
-    {
-      "id": 5,
-      "question": "Who wrote the play 'Romeo and Juliet'?",
-      "options": ["Charles Dickens", "Jane Austen", "William Shakespeare", "Oscar Wilde"],
-      "answer": 2,
-      "explanation": "Romeo and Juliet was written by William Shakespeare around 1594–1596."
-    },
-    {
-      "id": 6,
-      "question": "How many sides does a hexagon have?",
-      "options": ["5", "6", "7", "8"],
-      "answer": 1,
-      "explanation": "A hexagon has exactly 6 sides. 'Hex' means six in Greek."
-    },
-    {
-      "id": 7,
-      "question": "What is the largest ocean on Earth?",
-      "options": ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
-      "answer": 3,
-      "explanation": "The Pacific Ocean covers about 165 million square kilometres."
-    },
-    {
-      "id": 8,
-      "question": "In which year did World War II end?",
-      "options": ["1943", "1944", "1945", "1946"],
-      "answer": 2,
-      "explanation": "World War II ended in 1945 with Germany's surrender in May and Japan's in September."
-    },
-    {
-      "id": 9,
-      "question": "What is the speed of light (approximate)?",
-      "options": ["300,000 km/s", "150,000 km/s", "450,000 km/s", "600,000 km/s"],
-      "answer": 0,
-      "explanation": "The speed of light in a vacuum is approximately 299,792 km/s, rounded to 300,000 km/s."
-    },
-    {
-      "id": 10,
-      "question": "Which country is home to the kangaroo?",
-      "options": ["New Zealand", "South Africa", "Brazil", "Australia"],
-      "answer": 3,
-      "explanation": "Kangaroos are native to Australia and are one of its national symbols."
-    }
-  ]
-}
+  {
+    "question": "Which database are we using for real-time syncing?",
+    "options": ["MongoDB", "MySQL", "Supabase", "SQLite"],
+    "answer": 2
+  },
+  {
+    "question": "What is the capital of South Africa?",
+    "options": ["Johannesburg", "Pretoria", "Cape Town", "Durban"],
+    "answer": 1
+  }
+]

@@ -1,8 +1,4 @@
 {
-    "name": "TeamQuizShowdown",
-    "description": "Multiplayer Quiz using Supabase",
-    "terminal": false,
-    "packages": [],
     "js_modules": {
         "main": [
             "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
