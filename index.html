@@ -1,261 +1,118 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css">
-  <title>Quiz</title>
-  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Quiz Showdown</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css" />
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 <body>
 <div class="container">
- 
-  <!-- Quiz screen -->
-  <div id="quiz-screen">
-    <div class="header">
-      <div class="header-left">
-        <h1 id="quiz-title">Loading…</h1>
-        <p  id="quiz-subject"></p>
-      </div>
-      <div class="progress-wrap">
-        <div class="progress-label" id="progress-label">0 / 0</div>
-        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      </div>
+    
+    <div id="debug-console" style="display:none; margin: 10px; padding: 15px; background: #fee2e2; border: 2px solid #ef4444; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; color: #991b1b; position: relative; z-index: 9999;">
+        <h3 style="margin-top:0; color: #b91c1c;">⚠️ Connection/System Error</h3>
+        <div id="error-message-list" style="max-height: 100px; overflow-y: auto;"></div>
+        <button onclick="location.reload()" style="margin-top:10px; background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Retry Connection</button>
     </div>
- 
-    <div class="card" id="question-card">
-      <div class="q-meta">
-        <span class="q-badge" id="q-number">Q1</span>
-      </div>
-      <div class="q-text" id="q-text"></div>
-      <div class="options" id="options-list"></div>
-      <div class="explanation" id="explanation"></div>
-    </div>
- 
-    <div class="card nav">
-      <button class="btn btn-outline" id="btn-prev" disabled>← Previous</button>
-      <button class="btn btn-check"   id="btn-check" disabled>Check answer</button>
-      <button class="btn btn-primary" id="btn-next">Next →</button>
-    </div>
-  </div>
- 
-  <!-- Score screen -->
-  <div id="score-screen">
-    <div class="score-card">
-      <div class="score-circle" id="score-circle">
-        <span class="score-pct" id="score-pct">0%</span>
-        <span class="score-sub">score</span>
-      </div>
-      <h2 class="score-title" id="score-title"></h2>
-      <p  class="score-msg"   id="score-msg"></p>
-      <div class="score-stats">
-        <div class="stat-item stat-correct">
-          <div class="stat-num" id="stat-correct">0</div>
-          <div class="stat-lbl">Correct</div>
+
+    <div id="start-menu" class="card">
+        <h1>🎮 Team Quiz Showdown</h1>
+        <div id="lobby-ui">
+            <input type="text" id="player-name" placeholder="Enter Your Name" class="input-field" style="width: 100%; margin-bottom: 10px; padding: 12px;">
+            <div style="margin-top:15px; text-align: center;">
+                <button class="btn btn-primary" style="width: 100%;" onclick="window.dispatchEvent(new CustomEvent('hostGame'))">Host New Game</button>
+                
+                <div style="margin-top:30px; border-top: 1px solid #ddd; padding-top: 20px;">
+                    <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px;">Joining a friend?</p>
+                    <div style="display: flex; gap: 5px; justify-content: center;">
+                        <input type="text" id="join-code" placeholder="CODE" class="input-field" style="width:100px; text-transform:uppercase; text-align: center;">
+                        <button class="btn btn-outline" id="btn-join">Join Room</button>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="stat-item stat-wrong">
-          <div class="stat-num" id="stat-wrong">0</div>
-          <div class="stat-lbl">Incorrect</div>
+
+        <div id="waiting-room" style="display:none; text-align: center;">
+            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; display: inline-block;">
+                <span style="font-size: 0.8rem; text-transform: uppercase; color: #666;">Room Code</span>
+                <div id="display-code" style="font-size: 32px; font-weight: bold; color: #3b82f6; letter-spacing: 4px;">----</div>
+            </div>
+            <p id="player-status" style="margin: 20px 0; font-style: italic;">Connecting to Supabase...</p>
+            
+            <div id="host-only-controls" style="display:none; border-top: 1px solid #eee; padding-top: 20px;">
+                <button class="btn btn-check" id="btn-start" style="width:100%; padding: 15px;">START GAME (Team Shuffle)</button>
+            </div>
         </div>
-        <div class="stat-item stat-total">
-          <div class="stat-num" id="stat-total">0</div>
-          <div class="stat-lbl">Total</div>
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="restartQuiz()" style="width:100%;padding:13px;">Retake Quiz</button>
- 
-      <div class="review-list" id="review-list"></div>
     </div>
-  </div>
- 
+
+    <div id="game-screen" style="display:none;">
+        <div class="game-layout" style="display: flex; gap: 20px;">
+            
+            <div class="main-column" style="flex: 3; position: relative;">
+                <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div class="timer-circle" style="background: #333; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">
+                        <span id="timer-sec">10</span>s
+                    </div>
+                    <div class="turn-info" style="text-align: right;">
+                        <p style="margin:0; font-size: 0.8rem; color: #666;">Current Turn</p>
+                        <h2 id="active-player-display" style="margin:0; color: #1f2937;">Waiting...</h2>
+                    </div>
+                </div>
+                
+                <div class="card quiz-box" style="position: relative;">
+                    <div id="q-text" class="question-text" style="font-size: 22px; margin-bottom: 20px; font-weight: 600;">Question loading...</div>
+                    <div id="options-list" class="options-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+                    
+                    <div id="input-lock" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:100; border-radius: 12px; cursor: not-allowed; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666;">
+                        Watching...
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar" style="flex: 1;">
+                <div class="team-card" style="background: #eff6ff; padding: 15px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #bfdbfe;">
+                    <h3 style="margin:0; display:flex; justify-content: space-between;">Team A <span id="score-t1">0</span></h3>
+                    <ul id="list-t1" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 10px;"></ul>
+                </div>
+
+                <div class="team-card" style="background: #fef2f2; padding: 15px; border-radius: 12px; border: 1px solid #fecaca;">
+                    <h3 style="margin:0; display:flex; justify-content: space-between;">Team B <span id="score-t2">0</span></h3>
+                    <ul id="list-t2" style="list-style: none; padding: 0; font-size: 0.9rem; margin-top: 10px;"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
- 
+
+<script type="py" src="database.py" config="pyscript.json"></script>
 <script>
-  const JSON_FILE = 'questions.json';
- 
-  let questions = [];
-  let quizMeta  = {};
-  let current   = 0;
-  let userAnswers = [];  // index of chosen option per question, or null
-  let checked   = [];    // whether this question has been checked
- 
-  async function loadQuiz() {
-    try {
-      const res  = await fetch(JSON_FILE);
-      if (!res.ok) throw new Error('Could not load ' + JSON_FILE);
-      const data = await res.json();
-      quizMeta  = data.quiz;
-      questions = data.questions;
-      userAnswers = Array(questions.length).fill(null);
-      checked     = Array(questions.length).fill(false);
-      initUI();
-      renderQuestion();
-    } catch (e) {
-      document.getElementById('question-card').innerHTML =
-        `<div class="error-msg"><strong>Error:</strong> ${e.message}<br>Make sure <code>questions.json</code> is in the same folder as this HTML file.</div>`;
-      document.querySelector('.nav').style.display = 'none';
+    // System Error Logger
+    function showDebugError(msg) {
+        document.getElementById('debug-console').style.display = 'block';
+        const list = document.getElementById('error-message-list');
+        const entry = document.createElement('div');
+        entry.innerText = ">> " + msg;
+        list.appendChild(entry);
     }
-  }
- 
-  function initUI() {
-    document.getElementById('quiz-title').textContent   = quizMeta.title;
-    document.getElementById('quiz-subject').textContent = quizMeta.subject;
-  }
- 
-  function renderQuestion() {
-    const q = questions[current];
-    const total = questions.length;
-    const letters = ['A','B','C','D','E'];
- 
-    document.getElementById('q-number').textContent = `Q${current + 1}`;
-    document.getElementById('q-text').textContent   = q.question;
-    document.getElementById('progress-label').textContent = `${current + 1} / ${total}`;
-    document.getElementById('progress-fill').style.width  = `${((current + 1) / total) * 100}%`;
- 
-    // options
-    const list = document.getElementById('options-list');
-    list.innerHTML = '';
-    q.options.forEach((opt, i) => {
-      const div = document.createElement('div');
-      div.className = 'option';
-      div.dataset.index = i;
- 
-      const letter = document.createElement('div');
-      letter.className = 'option-letter';
-      letter.textContent = letters[i];
- 
-      const text = document.createElement('div');
-      text.className = 'option-text';
-      text.textContent = opt;
- 
-      div.appendChild(letter);
-      div.appendChild(text);
-      div.addEventListener('click', () => selectOption(i));
-      list.appendChild(div);
-    });
- 
-    // explanation
-    const exp = document.getElementById('explanation');
-    exp.textContent = q.explanation || '';
-    exp.classList.remove('show');
- 
-    // restore state if revisiting
-    if (userAnswers[current] !== null) {
-      highlightSelected(userAnswers[current]);
+
+    // Global JS Error Catching
+    window.onerror = (m, s, l) => showDebugError(`JS: ${m} (Line ${l})`);
+    window.onunhandledrejection = (e) => showDebugError(`DB: ${e.reason}`);
+
+    function showWaiting(code, isHost) {
+        document.getElementById('lobby-ui').style.display = 'none';
+        document.getElementById('waiting-room').style.display = 'block';
+        document.getElementById('display-code').innerText = code;
+        document.getElementById('player-status').innerText = "In Lobby - Waiting for players...";
+        if(isHost) document.getElementById('host-only-controls').style.display = 'block';
     }
-    if (checked[current]) {
-      revealAnswer(false);
-    }
- 
-    // nav buttons
-    document.getElementById('btn-prev').disabled  = current === 0;
-    document.getElementById('btn-next').textContent = current === total - 1 ? 'Finish' : 'Next →';
-    document.getElementById('btn-check').disabled = userAnswers[current] === null || checked[current];
-  }
- 
-  function highlightSelected(idx) {
-    document.querySelectorAll('.option').forEach((el, i) => {
-      el.classList.toggle('selected', i === idx);
-    });
-  }
- 
-  function selectOption(idx) {
-    if (checked[current]) return;
-    userAnswers[current] = idx;
-    highlightSelected(idx);
-    document.getElementById('btn-check').disabled = false;
-  }
- 
-  function revealAnswer(animate = true) {
-    const q = questions[current];
-    const correct = q.answer;
-    const chosen  = userAnswers[current];
-    checked[current] = true;
- 
-    document.querySelectorAll('.option').forEach((el, i) => {
-      el.classList.remove('selected');
-      el.classList.add('locked');
-      if (i === correct) el.classList.add('correct');
-      if (i === chosen && i !== correct) el.classList.add('wrong');
-    });
- 
-    if (q.explanation) document.getElementById('explanation').classList.add('show');
-    document.getElementById('btn-check').disabled = true;
-  }
- 
-  document.getElementById('btn-check').addEventListener('click', () => revealAnswer(true));
- 
-  document.getElementById('btn-prev').addEventListener('click', () => {
-    if (current > 0) { current--; renderQuestion(); }
-  });
- 
-  document.getElementById('btn-next').addEventListener('click', () => {
-    if (current < questions.length - 1) {
-      current++;
-      renderQuestion();
-    } else {
-      showScore();
-    }
-  });
- 
-  function showScore() {
-    const total   = questions.length;
-    const correct = questions.reduce((sum, q, i) => sum + (userAnswers[i] === q.answer ? 1 : 0), 0);
-    const pct     = Math.round((correct / total) * 100);
-    const pass    = pct >= (quizMeta.passMark || 60);
- 
-    document.getElementById('quiz-screen').style.display   = 'none';
-    document.getElementById('score-screen').style.display  = 'block';
- 
-    document.getElementById('score-pct').textContent     = pct + '%';
-    document.getElementById('stat-correct').textContent  = correct;
-    document.getElementById('stat-wrong').textContent    = total - correct;
-    document.getElementById('stat-total').textContent    = total;
- 
-    const circle = document.getElementById('score-circle');
-    circle.classList.toggle('pass', pass);
-    circle.classList.toggle('fail', !pass);
- 
-    document.getElementById('score-title').textContent = pass ? '🎉 Well done!' : '📚 Keep practising';
-    document.getElementById('score-msg').textContent   =
-      pass ? `You passed with ${pct}% — great job!`
-           : `You scored ${pct}%. The pass mark is ${quizMeta.passMark || 60}%. Try again!`;
- 
-    // review list
-    const reviewList = document.getElementById('review-list');
-    reviewList.innerHTML = '<h3 style="font-size:14px;font-weight:600;color:#374151;margin-bottom:8px;">Answer review</h3>';
-    questions.forEach((q, i) => {
-      const isCorrect = userAnswers[i] === q.answer;
-      const div = document.createElement('div');
-      div.className = 'review-item';
-      div.innerHTML = `
-        <span class="review-icon">${isCorrect ? '✅' : '❌'}</span>
-        <div class="review-q">
-          <div>${q.question}</div>
-          <div class="review-a">
-            ${isCorrect
-              ? 'Correct: ' + q.options[q.answer]
-              : `Your answer: ${userAnswers[i] !== null ? q.options[userAnswers[i]] : 'Not answered'} &nbsp;|&nbsp; Correct: ${q.options[q.answer]}`
-            }
-          </div>
-        </div>`;
-      reviewList.appendChild(div);
-    });
-  }
- 
-  function restartQuiz() {
-    current     = 0;
-    userAnswers = Array(questions.length).fill(null);
-    checked     = Array(questions.length).fill(false);
-    document.getElementById('score-screen').style.display = 'none';
-    document.getElementById('quiz-screen').style.display  = 'block';
-    renderQuestion();
-  }
- 
-  loadQuiz();
 </script>
+
 </body>
 </html>
- 
-
